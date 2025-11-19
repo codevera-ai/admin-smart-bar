@@ -1,0 +1,41 @@
+<?php return array(
+    'root' => array(
+        'name' => 'billypatel/admin-smart-bar',
+        'pretty_version' => 'dev-main',
+        'version' => 'dev-main',
+        'reference' => '75a4bb493790bcfbaff193c188dd8ec469a48f12',
+        'type' => 'wordpress-plugin',
+        'install_path' => __DIR__ . '/../../',
+        'aliases' => array(),
+        'dev' => false,
+    ),
+    'versions' => array(
+        'billypatel/admin-smart-bar' => array(
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => '75a4bb493790bcfbaff193c188dd8ec469a48f12',
+            'type' => 'wordpress-plugin',
+            'install_path' => __DIR__ . '/../../',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+        'psr/log' => array(
+            'pretty_version' => '1.1.4',
+            'version' => '1.1.4.0',
+            'reference' => 'd49695b909c3b7628b6289db5479a1c204601f11',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../psr/log',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+        'yetidevworks/yetisearch' => array(
+            'pretty_version' => '1.1.0',
+            'version' => '1.1.0.0',
+            'reference' => '2da53fb1ba415769b005b607f667556ba017fdd9',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../yetidevworks/yetisearch',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
+    ),
+);
