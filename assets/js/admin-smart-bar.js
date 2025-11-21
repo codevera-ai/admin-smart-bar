@@ -67,6 +67,27 @@
                 settingsWrap.appendChild(notice);
             }
         });
+
+        // Remove third-party plugin notices from this plugin's settings page
+        removeThirdPartyNotices();
+    }
+
+    function removeThirdPartyNotices() {
+        const settingsWrap = document.querySelector('.asb-settings-wrap');
+
+        if (!settingsWrap) {
+            return;
+        }
+
+        // Find and remove all third-party notices (notice notice-info from other plugins)
+        const thirdPartyNotices = document.querySelectorAll('.notice.notice-info');
+
+        thirdPartyNotices.forEach(function(notice) {
+            // Only remove if it's not specifically from this plugin
+            if (!notice.classList.contains('asb-notice')) {
+                notice.remove();
+            }
+        });
     }
 
     function observeNotices() {
@@ -93,6 +114,7 @@
 
             if (shouldMove) {
                 moveSettingsNotices();
+                removeThirdPartyNotices();
             }
         });
 

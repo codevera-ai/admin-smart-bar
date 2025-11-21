@@ -3,7 +3,7 @@
  * Plugin Name: Admin Smart Bar
  * Plugin URI: https://codevera.ai
  * Description: A fast, searchable smart bar for WordPress admin with keyboard shortcuts
- * Version: 1.0.9
+ * Version: 1.0.10
  * Author: Codevera
  * Author URI: https://codevera.ai
  * License: GPL v2 or later
