@@ -1,34 +1,40 @@
 # Admin Smart Bar
 
-A fast, searchable command palette for WordPress admin. Navigate your WordPress site like a pro with keyboard shortcuts and instant search.
+A lightning-fast command palette for WordPress admin powered by advanced full-text search. Navigate your WordPress site instantly with keyboard shortcuts.
 
 ## What is Admin Smart Bar?
 
-Admin Smart Bar brings Mac Spotlight-style search to your WordPress admin. Instead of clicking through menus, just press `Ctrl+K` (or `Cmd+K` on Mac), type what you're looking for, and go straight there.
+Admin Smart Bar brings Mac Spotlight-style search to your WordPress admin. Powered by advanced full-text search technology with fuzzy matching and intelligent ranking, it delivers instant, accurate results as you type.
+
+Instead of clicking through menus, just press `Ctrl+K` (or `Cmd+K` on Mac), type what you're looking for, and go straight there.
 
 ## Features
 
-### Lightning-fast search
-Search across all your WordPress content:
-- Posts and pages (including draft previews)
-- Media files
-- Users
-- Page builder content (Elementor, Beaver Builder, Divi, Oxygen)
+### Advanced full-text search
+Powered by SQLite FTS5 with BM25 ranking for lightning-fast, relevant results:
+- Posts and pages (including drafts and private content)
+- Page builder content (Elementor, Divi, Beaver Builder, and 7 more)
+- Media files (images, videos, documents)
+- Users (with capability-based filtering)
+- WooCommerce products (if WooCommerce is installed)
+- Fuzzy matching for typo correction
+- Prefix search for instant type-ahead results
+- Intelligent content weighting (titles ranked higher than content)
 
 ### Smart admin navigation
 Find WordPress admin pages instantly:
 - Dashboard, posts, pages, media
 - Comments, appearance, plugins, users
 - Settings, tools, and more
-- All submenu items included
+- All submenu items and custom post types
 
-### Plugin shortcuts
-If you have popular plugins installed, search their admin pages too:
+### Popular plugin shortcuts
+Quickly access admin pages for installed plugins:
 - WooCommerce (products, orders, settings, analytics)
 - Yoast SEO (settings, search appearance, tools)
 - Elementor (templates, settings)
 - Advanced Custom Fields (field groups)
-- And many more...
+- Contact Form 7, WPForms, Jetpack, and more
 
 ### Keyboard-first design
 - `Ctrl+K` or `Cmd+K` - Open search
@@ -60,19 +66,26 @@ Every search result shows quick actions:
 
 **Finding content:**
 - Type "contact" to find your Contact page
-- Type "products" to find product-related pages
+- Type "products" to find WooCommerce products
 - Type "john" to find posts or users named John
+- Type "draft" to find draft posts
 
 **Admin navigation:**
 - Type "plugins" to go to the Plugins page
 - Type "settings" to see all settings pages
 - Type "new post" to create a new post
 - Type "theme" to access theme options
+- Type "users" to manage users
 
 **Plugin actions:**
 - Type "woocommerce orders" to view WooCommerce orders
 - Type "yoast seo" to access Yoast SEO settings
-- Type "elementor" to see Elementor templates
+- Type "acf" to manage Advanced Custom Fields
+
+**Fuzzy search examples:**
+- Type "admn" to find admin pages (typo correction)
+- Type "setings" to find settings (automatic correction)
+- Type "prodct" to find products (fuzzy matching)
 
 ### Quick actions
 Each search result has quick action links:
@@ -92,40 +105,58 @@ Choose your preferred shortcut:
 - `Ctrl+/` / `Cmd+/` (like Slack)
 
 ### Search scope
-Choose what to search:
+Choose what content types to search:
 - ✓ Posts
 - ✓ Pages
 - ✓ Media
 - ✓ Users
+- ✓ Products (WooCommerce)
 
-Uncheck any you don't want to search.
+Uncheck any content type you don't want to search. The search index automatically updates when you save or delete content.
 
-## Page builder support
+### Page builder support
+Admin Smart Bar automatically indexes content from these popular page builders:
+- Elementor
+- Divi Builder
+- Beaver Builder
+- Bricks Builder
+- Oxygen Builder
+- Breakdance
+- WPBakery Page Builder
+- Visual Composer
+- Thrive Architect
+- SeedProd
 
-Admin Smart Bar automatically detects and searches content from popular page builders:
-
-- **Elementor** - Searches widget content, headings, text, etc.
-- **Beaver Builder** - Searches module content
-- **Divi Builder** - Searches Divi sections and modules
-- **Oxygen Builder** - Searches shortcode content
-
-If a page builder is not installed, the plugin doesn't add any overhead.
+Content created with these page builders is fully searchable, with all markup and shortcodes automatically stripped. No configuration needed.
 
 ## Tips and tricks
 
+### Search page builder content
+If you use page builders like Elementor or Divi, all your page builder content is automatically indexed and searchable. Just search for any text that appears on your pages, and Admin Smart Bar will find it.
+
 ### Use natural language
-You don't need to type exact titles:
+You don't need to type exact titles. The fuzzy search understands what you mean:
 - "new user" finds "Create a new user"
-- "backup" finds UpdraftPlus backup pages
-- "cache" finds WP Rocket settings
+- "backup" finds backup-related plugins and pages
+- "cache" finds caching plugin settings
+- "order" finds WooCommerce orders
+
+### Typo correction works automatically
+Made a typo? No problem:
+- "admn" automatically corrects to "admin"
+- "setings" finds "settings"
+- "prodct" finds "product"
 
 ### Search by email
 Type part of an email address to find users:
 - "john@example.com" finds that user
 - "@gmail.com" finds all Gmail users
 
-### Find drafts
-Unpublished posts and pages appear in search results. The View link shows a preview instead of the published page.
+### Find drafts and private content
+Unpublished posts and pages appear in search results based on your capabilities. The View link shows a preview for drafts instead of the published page.
+
+### Instant type-ahead
+Results appear as you type thanks to prefix search. Start typing and see matching results immediately.
 
 ### Skip the mouse
 Once you learn the keyboard shortcuts, you can navigate WordPress without touching your mouse.

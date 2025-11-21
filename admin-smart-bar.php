@@ -3,7 +3,7 @@
  * Plugin Name: Admin Smart Bar
  * Plugin URI: https://codevera.ai
  * Description: A fast, searchable smart bar for WordPress admin with keyboard shortcuts
- * Version: 1.0.7
+ * Version: 1.0.8
  * Author: Codevera
  * Author URI: https://codevera.ai
  * License: GPL v2 or later
@@ -25,6 +25,10 @@ define('ADMIN_SMART_BAR_PLUGIN_URL', plugin_dir_url(__FILE__));
 if (file_exists(ADMIN_SMART_BAR_PLUGIN_DIR . 'vendor/autoload.php')) {
     require_once ADMIN_SMART_BAR_PLUGIN_DIR . 'vendor/autoload.php';
 }
+
+// Load plugin classes
+require_once ADMIN_SMART_BAR_PLUGIN_DIR . 'includes/Page_Builder_Content_Extractor.php';
+require_once ADMIN_SMART_BAR_PLUGIN_DIR . 'includes/Search_Engine.php';
 
 // Main plugin class
 class Admin_Smart_Bar {
@@ -301,62 +305,6 @@ class Admin_Smart_Bar {
         wp_send_json_success($final_results);
     }
 
-    private function search_page_builder_content($query, $post_types) {
-        $page_builder_posts = [];
-
-        // Only search if page builders are active
-        $active_builders = [];
-
-        // Check for Elementor
-        if (is_plugin_active('elementor/elementor.php')) {
-            $active_builders['elementor'] = '_elementor_data';
-        }
-
-        // Check for Beaver Builder
-        if (is_plugin_active('beaver-builder-lite-version/fl-builder.php') || is_plugin_active('bb-plugin/fl-builder.php')) {
-            $active_builders['beaver'] = '_fl_builder_data';
-        }
-
-        // Check for Divi
-        if (is_plugin_active('divi-builder/divi-builder.php') || function_exists('et_divi_fonts_url')) {
-            $active_builders['divi'] = '_et_pb_use_builder';
-        }
-
-        // Check for Oxygen
-        if (is_plugin_active('oxygen/functions.php')) {
-            $active_builders['oxygen'] = 'ct_builder_shortcodes';
-        }
-
-        // If no page builders are active, return empty
-        if (empty($active_builders)) {
-            return $page_builder_posts;
-        }
-
-        // Build meta query for page builder content
-        $meta_query = ['relation' => 'OR'];
-
-        foreach ($active_builders as $builder => $meta_key) {
-            $meta_query[] = [
-                'key' => $meta_key,
-                'value' => $query,
-                'compare' => 'LIKE'
-            ];
-        }
-
-        // Search page builder content
-        $args = [
-            'post_type' => $post_types,
-            'posts_per_page' => 5,
-            'post_status' => 'any',
-            'meta_query' => $meta_query,
-            'no_found_rows' => true,
-            'update_post_term_cache' => false
-        ];
-
-        $page_builder_posts = get_posts($args);
-
-        return $page_builder_posts;
-    }
 
     /**
      * Index post when it's saved

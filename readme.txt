@@ -8,35 +8,41 @@ Stable tag: 1.0.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-A fast, searchable command palette for WordPress admin. Navigate your WordPress site like a pro with keyboard shortcuts and instant search.
+A lightning-fast command palette for WordPress admin powered by advanced full-text search. Navigate your WordPress site instantly with keyboard shortcuts.
 
 == Description ==
 
-Admin Smart Bar brings Mac Spotlight-style search to your WordPress admin. Instead of clicking through menus, just press `Ctrl+K` (or `Cmd+K` on Mac), type what you're looking for, and go straight there.
+Admin Smart Bar brings Mac Spotlight-style search to your WordPress admin. Powered by advanced full-text search technology with fuzzy matching and intelligent ranking, it delivers instant, accurate results as you type.
+
+Instead of clicking through menus, just press `Ctrl+K` (or `Cmd+K` on Mac), type what you're looking for, and go straight there.
 
 = Features =
 
-**Lightning-fast search**
-Search across all your WordPress content:
-* Posts and pages (including draft previews)
-* Media files
-* Users
-* Page builder content (Elementor, Beaver Builder, Divi, Oxygen)
+**Advanced full-text search**
+Powered by SQLite FTS5 with BM25 ranking for lightning-fast, relevant results:
+* Posts and pages (including drafts and private content)
+* Page builder content (Elementor, Divi, Beaver Builder, and 7 more)
+* Media files (images, videos, documents)
+* Users (with capability-based filtering)
+* WooCommerce products (if WooCommerce is installed)
+* Fuzzy matching for typo correction
+* Prefix search for instant type-ahead results
+* Intelligent content weighting (titles ranked higher than content)
 
 **Smart admin navigation**
 Find WordPress admin pages instantly:
 * Dashboard, posts, pages, media
 * Comments, appearance, plugins, users
 * Settings, tools, and more
-* All submenu items included
+* All submenu items and custom post types
 
-**Plugin shortcuts**
-If you have popular plugins installed, search their admin pages too:
+**Popular plugin shortcuts**
+Quickly access admin pages for installed plugins:
 * WooCommerce (products, orders, settings, analytics)
 * Yoast SEO (settings, search appearance, tools)
 * Elementor (templates, settings)
 * Advanced Custom Fields (field groups)
-* And many more
+* Contact Form 7, WPForms, Jetpack, and more
 
 **Keyboard-first design**
 * `Ctrl+K` or `Cmd+K` - Open search
@@ -49,15 +55,20 @@ Every search result shows quick actions:
 * Edit - Jump to edit screen
 * View - Open frontend view (published posts) or preview (drafts)
 
-= Page builder support =
+**Page builder support**
+Admin Smart Bar automatically indexes content from these popular page builders:
+* Elementor
+* Divi Builder
+* Beaver Builder
+* Bricks Builder
+* Oxygen Builder
+* Breakdance
+* WPBakery Page Builder
+* Visual Composer
+* Thrive Architect
+* SeedProd
 
-Admin Smart Bar automatically detects and searches content from popular page builders:
-* Elementor - Searches widget content, headings, text
-* Beaver Builder - Searches module content
-* Divi Builder - Searches Divi sections and modules
-* Oxygen Builder - Searches shortcode content
-
-If a page builder is not installed, the plugin doesn't add any overhead.
+Content created with these page builders is fully searchable, with all markup and shortcodes automatically stripped. No configuration needed.
 
 = Privacy =
 
@@ -80,17 +91,21 @@ Admin Smart Bar:
 
 Press `Ctrl+K` on Windows/Linux or `Cmd+K` on Mac anywhere in the WordPress admin. You can change this keyboard shortcut in Settings → Admin Smart Bar.
 
-= Can I search draft posts? =
+= Can I search draft posts and private content? =
 
-Yes. All post statuses are searchable, including drafts. Draft posts will show a preview link instead of a view link.
+Yes. All post statuses are searchable, including drafts and private posts. The plugin respects WordPress capabilities, so users only see content they have permission to access. Draft posts will show a preview link instead of a view link.
 
-= Does it work with page builders? =
+= Does it work with WooCommerce? =
 
-Yes. Admin Smart Bar supports Elementor, Beaver Builder, Divi, and Oxygen. It searches the actual content created with these builders.
+Yes. If WooCommerce is installed, you can search products and access WooCommerce admin pages through the search bar.
+
+= How does the fuzzy search work? =
+
+The plugin includes intelligent typo correction. If you mistype a word, it will still find relevant results. For example, searching for "admn" will find "admin" pages.
 
 = Does it track my searches? =
 
-No. All searches happen on your server. No data is sent anywhere. No tracking or analytics are used.
+No. All searches happen on your server. No data is sent anywhere. No tracking or analytics are used. The search index is stored locally in your WordPress installation.
 
 = Can I customise the keyboard shortcut? =
 
@@ -101,7 +116,15 @@ Yes. Go to Settings → Admin Smart Bar to choose from:
 
 = What content types can I search? =
 
-By default, you can search posts, pages, media, and users. You can enable or disable any of these in the settings.
+You can search posts, pages, media, users, and WooCommerce products (if WooCommerce is installed). You can enable or disable any of these content types in Settings → Admin Smart Bar. Content from popular page builders (Elementor, Divi, Beaver Builder, etc.) is automatically indexed and searchable.
+
+= How is this different from the default WordPress search? =
+
+Admin Smart Bar uses advanced full-text search with BM25 ranking, fuzzy matching, and prefix search for instant type-ahead results. It's significantly faster and more accurate than default WordPress search, and includes admin navigation shortcuts.
+
+= Does it work with page builders like Elementor or Divi? =
+
+Yes. Admin Smart Bar automatically indexes content from 10 popular page builders including Elementor, Divi, Beaver Builder, Bricks, Oxygen, Breakdance, WPBakery, Visual Composer, Thrive Architect, and SeedProd. All page builder content is fully searchable with no configuration needed.
 
 == Screenshots ==
 
@@ -113,24 +136,29 @@ By default, you can search posts, pages, media, and users. You can enable or dis
 == Changelog ==
 
 = 1.0.6 =
-* Enhanced full-text search capabilities
-* Capability-based filtering for search results
-* Improved database handling
+* Implemented advanced full-text search with SQLite FTS5 and BM25 ranking
+* Added fuzzy matching for intelligent typo correction
+* Added prefix search for instant type-ahead results
+* Implemented capability-based filtering for secure content access
+* Added WooCommerce products support
+* Improved search result weighting and relevance
+* Enhanced database performance with query caching
+* Security improvement: Users now searched directly from WordPress database
+* Removed sensitive user data from search index
 * Bug fixes and performance improvements
 
 = 1.0.0 =
 * Initial release
 * Fast content search (posts, pages, media, users)
 * Admin navigation shortcuts
-* Page builder content search
-* Plugin-specific actions
+* Plugin-specific action shortcuts
 * Configurable keyboard shortcuts
 * Edit and view quick actions
 
 == Upgrade Notice ==
 
 = 1.0.6 =
-Enhanced search capabilities and improved performance.
+Major update with advanced full-text search, fuzzy matching, and improved security. Recommended for all users.
 
 = 1.0.0 =
 Initial release of Admin Smart Bar.

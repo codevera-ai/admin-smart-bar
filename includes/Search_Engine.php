@@ -9,9 +9,11 @@ class Search_Engine {
     private $indexer;
     private $db_path;
     private $index_name = 'admin_smart_bar';
+    private $page_builder_extractor;
 
     public function __construct() {
         $this->db_path = ADMIN_SMART_BAR_PLUGIN_DIR . 'data/search.db';
+        $this->page_builder_extractor = new Page_Builder_Content_Extractor();
         $this->init_search();
     }
 
@@ -130,6 +132,14 @@ class Search_Engine {
 
         // Prepare full content for indexing
         $body = wp_strip_all_tags($post->post_content);
+
+        // Extract and append page builder content
+        if ($this->page_builder_extractor) {
+            $page_builder_content = $this->page_builder_extractor->extract_content($post_id);
+            if (!empty($page_builder_content)) {
+                $body .= ' ' . $page_builder_content;
+            }
+        }
 
         // Index the document with proper field structure
         try {
