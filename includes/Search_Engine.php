@@ -34,7 +34,6 @@ class Search_Engine {
                         'content' => ['boost' => 1.0, 'store' => true],     // Standard content
                         'excerpt' => ['boost' => 2.0, 'store' => true],     // Medium priority
                         'tags' => ['boost' => 5.0, 'store' => true],        // High priority for tags
-                        'author' => ['boost' => 3.0, 'store' => true],      // Medium-high for authors
                         'category' => ['boost' => 4.0, 'store' => true]     // High priority for categories
                     ],
                     'batch_size' => 250,            // Optimized batch size
@@ -52,7 +51,6 @@ class Search_Engine {
                         'title' => 10.0,
                         'tags' => 5.0,
                         'category' => 4.0,
-                        'author' => 3.0,
                         'excerpt' => 2.0,
                         'content' => 1.0
                     ],
@@ -92,7 +90,7 @@ class Search_Engine {
                     'enable_suggestions' => true,
 
                     // Result fields to return
-                    'result_fields' => ['title', 'content', 'excerpt', 'tags', 'author', 'category']
+                    'result_fields' => ['title', 'content', 'excerpt', 'tags', 'category']
                 ],
                 'analyzer' => [
                     'min_word_length' => 2,
@@ -113,7 +111,7 @@ class Search_Engine {
                 $this->indexer = $this->yeti->createIndex($this->index_name);
             }
         } catch (\Exception $e) {
-            error_log('[ASB YetiSearch] Failed to initialise: ' . $e->getMessage());
+            // Silently fail - search will fall back to WordPress default search
         }
     }
 
@@ -138,7 +136,6 @@ class Search_Engine {
             // Get additional metadata
             $categories = wp_get_post_categories($post_id, ['fields' => 'names']);
             $tags = wp_get_post_tags($post_id, ['fields' => 'names']);
-            $author = get_the_author_meta('display_name', $post->post_author);
 
             $doc = [
                 'id' => 'post_' . $post_id,
@@ -147,7 +144,6 @@ class Search_Engine {
                     'content' => $body,
                     'excerpt' => $post->post_excerpt,
                     'tags' => !empty($tags) ? implode(' ', $tags) : '',
-                    'author' => $author,
                     'category' => !empty($categories) ? implode(' ', $categories) : ''
                 ],
                 'metadata' => [
@@ -162,7 +158,6 @@ class Search_Engine {
 
             return true;
         } catch (\Exception $e) {
-            error_log('[ASB YetiSearch] Failed to index post ' . $post_id . ': ' . $e->getMessage());
             return false;
         }
     }
@@ -191,7 +186,6 @@ class Search_Engine {
                     'content' => $content,
                     'excerpt' => $excerpt,
                     'tags' => '',
-                    'author' => get_the_author_meta('display_name', $attachment->post_author),
                     'category' => ''
                 ],
                 'metadata' => [
@@ -204,48 +198,47 @@ class Search_Engine {
 
             return true;
         } catch (\Exception $e) {
-            error_log('[ASB YetiSearch] Failed to index media ' . $attachment_id . ': ' . $e->getMessage());
             return false;
         }
     }
 
     /**
-     * Index a single user
+     * Search users directly from WordPress database (not stored in SQLite)
+     * This improves security by not storing user emails/logins in the search database
      */
-    public function index_user($user_id) {
-        $user = get_userdata($user_id);
-
-        if (!$user) {
-            return false;
+    private function search_users($query, $limit = 50) {
+        // Check if current user can list users
+        if (!current_user_can('list_users')) {
+            return [];
         }
 
-        // Delete existing document first
-        $this->delete_document($user_id, 'user');
+        $user_query = new \WP_User_Query([
+            'search' => '*' . esc_attr($query) . '*',
+            'search_columns' => ['user_login', 'user_nicename', 'user_email', 'display_name'],
+            'number' => $limit,
+            'orderby' => 'display_name',
+            'order' => 'ASC'
+        ]);
 
-        try {
-            $this->indexer->insert([
-                'id' => 'user_' . $user_id,
-                'content' => [
-                    'title' => $user->display_name,
-                    'content' => $user->user_login . ' ' . $user->user_email,
-                    'excerpt' => $user->user_email,
-                    'tags' => '',
-                    'author' => $user->display_name,
-                    'category' => ''
-                ],
-                'metadata' => [
+        $users = $user_query->get_results();
+        $results = [];
+
+        foreach ($users as $user) {
+            $results[] = [
+                'document' => [
+                    'id' => 'user_' . $user->ID,
                     'type' => 'user',
-                    'status' => $user->user_email,
-                    'user_id' => $user_id
+                    'metadata' => [
+                        'type' => 'user',
+                        'user_id' => $user->ID,
+                        'status' => $user->user_email
+                    ]
                 ],
-                'type' => 'user'
-            ]);
-
-            return true;
-        } catch (\Exception $e) {
-            error_log('[ASB YetiSearch] Failed to index user ' . $user_id . ': ' . $e->getMessage());
-            return false;
+                'score' => 1.0 // Base score for direct matches
+            ];
         }
+
+        return $results;
     }
 
     /**
@@ -264,54 +257,63 @@ class Search_Engine {
     }
 
     /**
-     * Search using direct SQLite FTS5 query for prefix matching
-     * YetiSearch tokenizes queries and strips wildcards, so we bypass it for prefix search
+     * Prefix search by querying SQLite FTS5 directly to preserve wildcards
      */
-    private function search_fts_direct($query, $limit = 50) {
+    private function search_prefix($query, $limit = 50) {
         try {
-            // Build FTS5 prefix query
-            $tokens = array_filter(explode(' ', trim($query)));
-            $fts_tokens = array_map(function($token) {
-                if (preg_match('/^[a-zA-Z0-9]+$/', $token)) {
-                    return $token . '*';  // FTS5 prefix syntax
+            // Add wildcard to last token for prefix matching in FTS5
+            $tokens = explode(' ', trim($query));
+            if (!empty($tokens)) {
+                $lastToken = array_pop($tokens);
+                // Only add wildcard if last token doesn't already have one and is at least 2 chars
+                if (strlen($lastToken) >= 2 && substr($lastToken, -1) !== '*') {
+                    $lastToken .= '*';
                 }
-                return $token;
-            }, $tokens);
-            $fts_query = implode(' ', $fts_tokens);
+                $tokens[] = $lastToken;
+                $query = implode(' ', $tokens);
+            }
 
-            // Query FTS5 directly
-            $pdo = new \PDO('sqlite:' . $this->db_path);
-            $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+            // Query FTS5 directly to avoid YetiSearch's query tokenization which strips wildcards
+            $db = new \PDO('sqlite:' . $this->db_path);
+            $db->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 
-            $stmt = $pdo->prepare("
-                SELECT d.id, d.metadata, d.type, bm25({$this->index_name}_fts) as score
+            $sql = "
+                SELECT
+                    d.id,
+                    d.type,
+                    d.metadata,
+                    bm25({$this->index_name}_fts) as rank
                 FROM {$this->index_name} d
                 INNER JOIN {$this->index_name}_fts f ON d.id = f.id
-                WHERE {$this->index_name}_fts MATCH :query
-                ORDER BY score
-                LIMIT :limit
-            ");
+                WHERE {$this->index_name}_fts MATCH ?
+                ORDER BY rank
+                LIMIT ?
+            ";
 
-            $stmt->bindValue(':query', $fts_query, \PDO::PARAM_STR);
-            $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
-            $stmt->execute();
+            $stmt = $db->prepare($sql);
+            $stmt->execute([$query, $limit]);
+            $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-            $results = [];
-            while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
-                $metadata = json_decode($row['metadata'], true) ?? [];
-                $results[] = [
+            if (empty($results)) {
+                return [];
+            }
+
+            // Convert storage results to our format
+            $formatted = [];
+            foreach ($results as $result) {
+                $metadata = json_decode($result['metadata'] ?? '[]', true);
+                $formatted[] = [
                     'document' => [
-                        'id' => $row['id'],
-                        'type' => $row['type'],
+                        'id' => $result['id'] ?? '',
+                        'type' => $result['type'] ?? '',
                         'metadata' => $metadata
                     ],
-                    'score' => abs($row['score'])  // BM25 scores are negative, make positive
+                    'score' => abs($result['rank'] ?? 0) // BM25 rank is negative
                 ];
             }
 
-            return $results;
+            return $formatted;
         } catch (\Exception $e) {
-            error_log('[ASB YetiSearch] Direct FTS search failed: ' . $e->getMessage());
             return [];
         }
     }
@@ -350,7 +352,6 @@ class Search_Engine {
 
             return $formatted;
         } catch (\Exception $e) {
-            error_log('[ASB YetiSearch] Fuzzy search failed: ' . $e->getMessage());
             return [];
         }
     }
@@ -358,91 +359,82 @@ class Search_Engine {
     /**
      * Search across all content
      * Uses prefix matching first, then falls back to fuzzy search if no results
+     * Users are searched directly from WordPress database for security
      */
     public function search($query, $types = ['posts', 'pages', 'media', 'users', 'products'], $limit = 50) {
         try {
-            if (!$this->yeti) {
-                error_log('[ASB YetiSearch] Search: YetiSearch not initialised');
-                return [];
-            }
+            $all_results = [];
 
-            // Try prefix matching first (fast and accurate)
-            $results = $this->search_fts_direct($query, $limit);
+            // Search posts/pages/media/products from SQLite
+            if ($this->yeti && array_intersect(['posts', 'pages', 'media', 'products'], $types)) {
+                // Try prefix matching first (fast and accurate)
+                $results = $this->search_prefix($query, $limit);
 
-            // If no results, fall back to fuzzy search for typos/misspellings
-            if (empty($results)) {
-                $results = $this->search_fuzzy($query, $limit);
-            }
-
-            if (empty($results)) {
-                return [];
-            }
-
-            // Build filters based on types
-            $allowed_post_types = [];
-            if (in_array('posts', $types)) {
-                $allowed_post_types[] = 'post';
-            }
-            if (in_array('pages', $types)) {
-                $allowed_post_types[] = 'page';
-            }
-            if (in_array('products', $types)) {
-                $allowed_post_types[] = 'product';
-            }
-            if (in_array('media', $types)) {
-                $allowed_post_types[] = 'attachment';
-            }
-
-            // Filter results by type and user capabilities
-            $filtered = [];
-            foreach ($results as $result) {
-                $doc = $result['document'];
-                $type = $doc['type'] ?? null;
-                $metadata = $doc['metadata'] ?? [];
-
-                if (!$type) {
-                    continue;
+                // If no results, fall back to fuzzy search for typos/misspellings
+                if (empty($results)) {
+                    $results = $this->search_fuzzy($query, $limit);
                 }
 
-                // Check if it's a user and users are allowed
-                if ($type === 'user' && in_array('users', $types)) {
-                    // Check if current user can list users
-                    if (!current_user_can('list_users')) {
-                        continue;
-                    }
-                    $filtered[] = $result;
-                    continue;
+                // Build filters based on types
+                $allowed_post_types = [];
+                if (in_array('posts', $types)) {
+                    $allowed_post_types[] = 'post';
+                }
+                if (in_array('pages', $types)) {
+                    $allowed_post_types[] = 'page';
+                }
+                if (in_array('products', $types)) {
+                    $allowed_post_types[] = 'product';
+                }
+                if (in_array('media', $types)) {
+                    $allowed_post_types[] = 'attachment';
                 }
 
-                // Check if post type is allowed
-                if (in_array($type, $allowed_post_types)) {
-                    // Check if current user has permission to read this post
-                    $post_id = $metadata['post_id'] ?? null;
+                // Filter results by type and user capabilities
+                foreach ($results as $result) {
+                    $doc = $result['document'];
+                    $type = $doc['type'] ?? null;
+                    $metadata = $doc['metadata'] ?? [];
 
-                    if (!$post_id) {
+                    if (!$type) {
                         continue;
                     }
 
-                    // Get the post to check its status and capabilities
-                    $post = get_post($post_id);
+                    // Check if post type is allowed
+                    if (in_array($type, $allowed_post_types)) {
+                        // Check if current user has permission to read this post
+                        $post_id = $metadata['post_id'] ?? null;
 
-                    if (!$post) {
-                        continue;
+                        if (!$post_id) {
+                            continue;
+                        }
+
+                        // Get the post to check its status and capabilities
+                        $post = get_post($post_id);
+
+                        if (!$post) {
+                            continue;
+                        }
+
+                        // Check read permission based on post status
+                        if (!$this->user_can_read_post($post)) {
+                            continue;
+                        }
+
+                        $all_results[] = $result;
                     }
-
-                    // Check read permission based on post status
-                    if (!$this->user_can_read_post($post)) {
-                        continue;
-                    }
-
-                    $filtered[] = $result;
                 }
             }
 
-            return $filtered;
+            // Search users directly from WordPress database (not SQLite)
+            if (in_array('users', $types)) {
+                $user_results = $this->search_users($query, $limit);
+                $all_results = array_merge($all_results, $user_results);
+            }
+
+            return $all_results;
 
         } catch (\Exception $e) {
-            error_log('[ASB YetiSearch] Search failed: ' . $e->getMessage());
             return [];
         }
     }
@@ -563,15 +555,8 @@ class Search_Engine {
             }
         }
 
-        // Index users
-        if (in_array('users', $search_types)) {
-            $users = get_users(['fields' => 'ID']);
-            foreach ($users as $user_id) {
-                if ($this->index_user($user_id)) {
-                    $total++;
-                }
-            }
-        }
+        // Note: Users are NOT indexed in SQLite for security reasons.
+        // User searches are performed directly against WordPress database.
 
         // Flush and optimize the index
         $this->indexer->flush();
@@ -593,7 +578,6 @@ class Search_Engine {
             $this->indexer->clear();
             return true;
         } catch (\Exception $e) {
-            error_log('[ASB YetiSearch] Failed to clear index: ' . $e->getMessage());
             return false;
         }
     }
@@ -606,7 +590,6 @@ class Search_Engine {
             $this->indexer->optimize();
             return true;
         } catch (\Exception $e) {
-            error_log('[ASB YetiSearch] Failed to optimise: ' . $e->getMessage());
             return false;
         }
     }
@@ -617,7 +600,6 @@ class Search_Engine {
     public function get_stats() {
         try {
             if (!$this->yeti) {
-                error_log('[ASB YetiSearch] get_stats: YetiSearch not initialised');
                 return [
                     'total_documents' => 0,
                     'database_size' => 0,
@@ -629,106 +611,23 @@ class Search_Engine {
             $indexer = $this->yeti->getIndexer($this->index_name);
 
             if (!$indexer) {
-                error_log('[ASB YetiSearch] get_stats: Could not get indexer for ' . $this->index_name);
                 return [
                     'total_documents' => 0,
-                    'database_size' => file_exists($this->db_path) ? filesize($this->db_path) : 0,
-                    'breakdown' => []
+                    'database_size' => file_exists($this->db_path) ? filesize($this->db_path) : 0
                 ];
             }
 
             $stats = $indexer->getStats();
 
-            // Get breakdown by type
-            $breakdown = $this->get_type_breakdown();
-
             return [
                 'total_documents' => $stats['document_count'] ?? 0,
-                'database_size' => file_exists($this->db_path) ? filesize($this->db_path) : 0,
-                'breakdown' => $breakdown
+                'database_size' => file_exists($this->db_path) ? filesize($this->db_path) : 0
             ];
         } catch (\Exception $e) {
-            error_log('[ASB YetiSearch] get_stats error: ' . $e->getMessage());
             return [
                 'total_documents' => 0,
-                'database_size' => file_exists($this->db_path) ? filesize($this->db_path) : 0,
-                'breakdown' => []
+                'database_size' => file_exists($this->db_path) ? filesize($this->db_path) : 0
             ];
-        }
-    }
-
-    /**
-     * Get breakdown of documents by type (chunks and unique documents)
-     */
-    private function get_type_breakdown() {
-        try {
-            $pdo = new \PDO('sqlite:' . $this->db_path);
-            $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-
-            // Get total chunks by type
-            $stmt = $pdo->prepare("
-                SELECT type, COUNT(*) as chunks, COUNT(DISTINCT id) as unique_docs
-                FROM {$this->index_name}
-                GROUP BY type
-                ORDER BY chunks DESC
-            ");
-            $stmt->execute();
-
-            $breakdown = [];
-            while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
-                $chunks = (int)$row['chunks'];
-                $unique = (int)$row['unique_docs'];
-
-                // Format as "unique docs (chunks)" if they differ
-                if ($chunks > $unique) {
-                    $breakdown[$row['type']] = $unique . ' (' . $chunks . ' chunks)';
-                } else {
-                    $breakdown[$row['type']] = $unique;
-                }
-            }
-
-            return $breakdown;
-        } catch (\Exception $e) {
-            error_log('[ASB YetiSearch] get_type_breakdown error: ' . $e->getMessage());
-            return [];
-        }
-    }
-
-    /**
-     * Get detailed document list (for debugging)
-     */
-    public function get_document_list($type = null, $limit = 100) {
-        try {
-            $pdo = new \PDO('sqlite:' . $this->db_path);
-            $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-
-            $sql = "SELECT id, type, metadata FROM {$this->index_name}";
-            if ($type) {
-                $sql .= " WHERE type = :type";
-            }
-            $sql .= " LIMIT :limit";
-
-            $stmt = $pdo->prepare($sql);
-            if ($type) {
-                $stmt->bindValue(':type', $type, \PDO::PARAM_STR);
-            }
-            $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
-            $stmt->execute();
-
-            $documents = [];
-            while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
-                $metadata = json_decode($row['metadata'], true) ?? [];
-                $documents[] = [
-                    'id' => $row['id'],
-                    'type' => $row['type'],
-                    'metadata' => $metadata
-                ];
-            }
-
-            return $documents;
-        } catch (\Exception $e) {
-            error_log('[ASB YetiSearch] get_document_list error: ' . $e->getMessage());
-            return [];
         }
     }
 }

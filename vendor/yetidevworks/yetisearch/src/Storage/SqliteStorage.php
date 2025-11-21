@@ -895,15 +895,27 @@ class SqliteStorage implements StorageInterface
     private function extractSearchableContent(array $content): string
     {
         $searchable = [];
-        
+        $analyzerConfig = $this->config['analyzer'] ?? [];
+        $disableStopWords = $analyzerConfig['disable_stop_words'] ?? false;
+
+        // Only apply stopword filtering if enabled
+        $shouldFilterStopWords = !$disableStopWords;
+
         foreach ($content as $field => $value) {
             if (is_string($value)) {
-                $searchable[] = $value;
+                // Apply stopword filtering to content and excerpt, but NOT titles
+                if ($shouldFilterStopWords && in_array($field, ['content', 'excerpt'])) {
+                    $analyzer = new \YetiSearch\Analyzers\StandardAnalyzer($analyzerConfig);
+                    $analyzed = $analyzer->analyze($value);
+                    $searchable[] = implode(' ', $analyzed['tokens']);
+                } else {
+                    $searchable[] = $value;
+                }
             } elseif (is_array($value)) {
                 $searchable[] = $this->extractSearchableContent($value);
             }
         }
-        
+
         return implode(' ', $searchable);
     }
     

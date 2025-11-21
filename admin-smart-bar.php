@@ -3,7 +3,7 @@
  * Plugin Name: Admin Smart Bar
  * Plugin URI: https://codevera.ai
  * Description: A fast, searchable smart bar for WordPress admin with keyboard shortcuts
- * Version: 1.0.6
+ * Version: 1.0.7
  * Author: Codevera
  * Author URI: https://codevera.ai
  * License: GPL v2 or later
@@ -57,9 +57,7 @@ class Admin_Smart_Bar {
         // YetiSearch incremental indexing hooks
         add_action('save_post', [$this, 'index_post_on_save'], 10, 1);
         add_action('delete_post', [$this, 'delete_post_from_index'], 10, 1);
-        add_action('user_register', [$this, 'index_user_on_save'], 10, 1);
-        add_action('profile_update', [$this, 'index_user_on_save'], 10, 1);
-        add_action('delete_user', [$this, 'delete_user_from_index'], 10, 1);
+        // Note: User indexing removed for security - users searched directly from WP database
         add_action('add_attachment', [$this, 'index_media_on_save'], 10, 1);
         add_action('edit_attachment', [$this, 'index_media_on_save'], 10, 1);
         add_action('delete_attachment', [$this, 'delete_media_from_index'], 10, 1);
@@ -213,7 +211,7 @@ class Admin_Smart_Bar {
                     if (function_exists('wc_get_product')) {
                         $wc_product = wc_get_product($post->ID);
                         if ($wc_product && $wc_product->get_price()) {
-                            $status_text .= ' - ' . strip_tags(wc_price($wc_product->get_price()));
+                            $status_text .= ' - ' . wp_strip_all_tags(wc_price($wc_product->get_price()));
                         }
                     }
 
@@ -405,23 +403,6 @@ class Admin_Smart_Bar {
         }
     }
 
-    /**
-     * Index user when registered or updated
-     */
-    public function index_user_on_save($user_id) {
-        if ($this->search_engine) {
-            $this->search_engine->index_user($user_id);
-        }
-    }
-
-    /**
-     * Delete user from index
-     */
-    public function delete_user_from_index($user_id) {
-        if ($this->search_engine) {
-            $this->search_engine->delete_document($user_id, 'user');
-        }
-    }
 
     private function load_admin_menu() {
         global $menu, $submenu, $_wp_submenu_nopriv, $_wp_menu_nopriv, $plugin_page, $_registered_pages;
@@ -621,13 +602,6 @@ class Admin_Smart_Bar {
             // Check if query matches any keyword
             foreach ($action['keywords'] as $keyword) {
                 if (stripos($keyword, $query_lower) !== false || stripos($query_lower, $keyword) !== false) {
-                    error_log(sprintf(
-                        '[ASB Action] MATCH: "%s" | Query: "%s" | Matched Keyword: "%s" | URL: %s',
-                        $action['title'],
-                        $query,
-                        $keyword,
-                        admin_url($action['url'])
-                    ));
                     $matched[] = [
                         'title' => $action['title'],
                         'type' => 'Menu',
@@ -675,14 +649,6 @@ class Admin_Smart_Bar {
 
                 // Check if matches query
                 if ((empty($query) || stripos($title, $query) !== false)) {
-                    if (!empty($query)) {
-                        error_log(sprintf(
-                            '[ASB Menu] MATCH: "%s" | Query: "%s" | URL: %s',
-                            $title,
-                            $query,
-                            $full_url
-                        ));
-                    }
                     $menu_items[] = [
                         'title' => $title,
                         'type' => 'Menu',
@@ -710,15 +676,6 @@ class Admin_Smart_Bar {
 
                         // Check if matches query
                         if ((empty($query) || stripos($sub_title, $query) !== false)) {
-                            if (!empty($query)) {
-                                error_log(sprintf(
-                                    '[ASB Submenu] MATCH: "%s" (Parent: "%s") | Query: "%s" | URL: %s',
-                                    $sub_title,
-                                    $title,
-                                    $query,
-                                    $sub_full_url
-                                ));
-                            }
                             $menu_items[] = [
                                 'title' => $sub_title,
                                 'type' => 'Menu',
@@ -994,20 +951,6 @@ class Admin_Smart_Bar {
                         <div class="asb-card-body">
                             <div class="asb-cache-stats">
                                 <p><strong>Status:</strong> <?php echo esc_html($search_stats['status']); ?></p>
-                                <?php if ($search_stats['items']): ?>
-                                    <p><strong>Total chunks:</strong> <?php echo esc_html($search_stats['items']); ?></p>
-                                    <p style="font-size: 11px; color: #666; margin-top: -5px;">
-                                        Long documents are split into searchable chunks. Search results are deduplicated.
-                                    </p>
-                                <?php endif; ?>
-                                <?php if (!empty($search_stats['breakdown'])): ?>
-                                    <p><strong>Content breakdown:</strong></p>
-                                    <ul style="margin: 5px 0 10px 20px; font-size: 12px;">
-                                        <?php foreach ($search_stats['breakdown'] as $type => $count): ?>
-                                            <li><?php echo esc_html(ucfirst($type)); ?>: <?php echo esc_html($count); ?></li>
-                                        <?php endforeach; ?>
-                                    </ul>
-                                <?php endif; ?>
                                 <?php if ($search_stats['database_size']): ?>
                                     <p><strong>Database size:</strong> <?php echo esc_html($search_stats['database_size']); ?></p>
                                 <?php endif; ?>

@@ -4,7 +4,7 @@ Tags: admin, search, command palette, keyboard shortcuts, productivity
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.2
-Stable tag: 1.0.0
+Stable tag: 1.0.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -112,6 +112,12 @@ By default, you can search posts, pages, media, and users. You can enable or dis
 
 == Changelog ==
 
+= 1.0.6 =
+* Enhanced full-text search capabilities
+* Capability-based filtering for search results
+* Improved database handling
+* Bug fixes and performance improvements
+
 = 1.0.0 =
 * Initial release
 * Fast content search (posts, pages, media, users)
@@ -122,6 +128,9 @@ By default, you can search posts, pages, media, and users. You can enable or dis
 * Edit and view quick actions
 
 == Upgrade Notice ==
+
+= 1.0.6 =
+Enhanced search capabilities and improved performance.
 
 = 1.0.0 =
 Initial release of Admin Smart Bar.

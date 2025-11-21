@@ -43,51 +43,36 @@
     }
 
     function moveSettingsNotices() {
-        console.log('[ASB] moveSettingsNotices called');
-
         const settingsHeader = document.querySelector('.asb-settings-header');
-        console.log('[ASB] settingsHeader found:', settingsHeader);
 
         if (!settingsHeader) {
-            console.log('[ASB] No settings header found, exiting');
             return;
         }
 
         const settingsWrap = settingsHeader.parentNode;
-        console.log('[ASB] settingsWrap:', settingsWrap);
 
         // Find all notices inside the header (these need to be moved OUT)
         const noticesInHeader = settingsHeader.querySelectorAll('.notice, .updated, .error, .update-nag, .settings-error');
-        console.log('[ASB] Found notices inside header:', noticesInHeader.length, noticesInHeader);
 
         if (noticesInHeader.length === 0) {
-            console.log('[ASB] No notices to move');
             return;
         }
 
         // Move each notice to after the settings header
         noticesInHeader.forEach(function(notice, index) {
-            console.log('[ASB] Processing notice', index, notice);
-
             // Insert after the header
             if (settingsHeader.nextSibling) {
                 settingsWrap.insertBefore(notice, settingsHeader.nextSibling);
-                console.log('[ASB] Notice moved after header');
             } else {
                 settingsWrap.appendChild(notice);
-                console.log('[ASB] Notice appended to wrap');
             }
         });
     }
 
     function observeNotices() {
-        console.log('[ASB] observeNotices called');
-
         const settingsWrap = document.querySelector('.asb-settings-wrap');
-        console.log('[ASB] settingsWrap for observer:', settingsWrap);
 
         if (!settingsWrap) {
-            console.log('[ASB] No settings wrap found for observer');
             return;
         }
 
@@ -101,14 +86,12 @@
                          node.classList.contains('updated') ||
                          node.classList.contains('error') ||
                          node.classList.contains('update-nag'))) {
-                        console.log('[ASB] Notice detected by observer:', node);
                         shouldMove = true;
                     }
                 });
             });
 
             if (shouldMove) {
-                console.log('[ASB] Triggering notice move from observer');
                 moveSettingsNotices();
             }
         });
@@ -117,16 +100,11 @@
             childList: true,
             subtree: true
         });
-
-        console.log('[ASB] Observer setup complete');
     }
 
     function captureAdminMenu() {
-        console.log('[ASB] Capturing admin menu from DOM');
-
         const adminMenu = document.getElementById('adminmenu');
         if (!adminMenu) {
-            console.log('[ASB] Admin menu not found');
             return;
         }
 
@@ -217,8 +195,6 @@
                 });
             }
         });
-
-        console.log('[ASB] Captured ' + menuItems.length + ' menu items');
     }
 
     function generateKeywords(title) {
@@ -273,7 +249,6 @@
 
     function initializeFuse() {
         if (typeof Fuse === 'undefined') {
-            console.error('[ASB] Fuse.js not loaded');
             return;
         }
 
@@ -294,7 +269,6 @@
         };
 
         fuse = new Fuse(menuItems, options);
-        console.log('[ASB] Fuse.js initialized with ' + menuItems.length + ' menu items');
     }
 
     function getSearchHistory() {
@@ -302,7 +276,6 @@
             const history = localStorage.getItem('asb_search_history');
             return history ? JSON.parse(history) : {};
         } catch (e) {
-            console.error('[ASB] Error loading search history:', e);
             return {};
         }
     }
@@ -311,7 +284,7 @@
         try {
             localStorage.setItem('asb_search_history', JSON.stringify(history));
         } catch (e) {
-            console.error('[ASB] Error saving search history:', e);
+            // Silently fail if localStorage is not available
         }
     }
 
@@ -344,7 +317,6 @@
         });
 
         saveSearchHistory(trimmed);
-        console.log('[ASB] Added to history:', item.title);
     }
 
     function getTopHistory(limit = 8) {
@@ -356,7 +328,6 @@
 
     function clearSearchHistory() {
         localStorage.removeItem('asb_search_history');
-        console.log('[ASB] Search history cleared');
     }
 
     function detectInstalledPlugins() {
@@ -758,7 +729,6 @@
                 score: result.score,
                 source: 'local'
             }));
-            console.log('[ASB] Fuse.js found ' + localMenuResults.length + ' menu matches');
         }
 
         // Perform AJAX search for content (posts, pages, users, media)
@@ -825,7 +795,6 @@
             renderResults(currentResults);
         })
         .catch(error => {
-            console.error('Search error:', error);
             // If AJAX fails, still show local results
             if (localMenuResults.length > 0) {
                 currentResults = localMenuResults;
